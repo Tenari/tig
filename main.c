@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <assert.h>
 #include "mytypes.h"
 
 #define RESET   "\033[0m"
@@ -33,21 +34,28 @@ bool isDirectory(const ptr path) {
 
 #define COPY_BUFSIZE 128
 void copy(FILE *in, FILE *out) {
-    u8 buf[COPY_BUFSIZE];
-    u64 numread, numwrite;
+  assert(in != NULL);
+  assert(out != NULL);
+  assert(COPY_BUFSIZE > 0);
+  assert(COPY_BUFSIZE < 1<<16);
+  u8 buf[COPY_BUFSIZE];
+  u64 numread, numwrite;
+  u32 iterations = 0;
 
-    while (!feof(in)) {
-        numread = fread(buf, sizeof(u8), COPY_BUFSIZE, in);
+  while (!feof(in)) {
+    iterations += 1;
+    assert(iterations != 0); // if it's 0, we wrapped a u32, which is an error
+    numread = fread(buf, sizeof(u8), COPY_BUFSIZE, in);
 
-        if (numread > 0) {
-            numwrite = fwrite(buf, sizeof(u8), numread, out);
+    if (numread > 0) {
+      numwrite = fwrite(buf, sizeof(u8), numread, out);
 
-            if (numwrite != numread) {
-                fputs("mismatch!\n", stderr);
-                return;
-            }
-        }
+      if (numwrite != numread) {
+        fputs("mismatch!\n", stderr);
+        return;
+      }
     }
+  }
 }
 
 i32 init() {
